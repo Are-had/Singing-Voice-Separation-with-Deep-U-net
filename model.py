@@ -171,64 +171,23 @@ class Unet(nn.Module):
     
     # SAVE & LOAD
     def save(self, path):
-        """Save model checkpoint"""
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        
         state = {
-            'conv1': self.conv1.state_dict(),
-            'conv2': self.conv2.state_dict(),
-            'conv3': self.conv3.state_dict(),
-            'conv4': self.conv4.state_dict(),
-            'conv5': self.conv5.state_dict(),
-            'conv6': self.conv6.state_dict(),
-            'deconv1': self.deconv1.state_dict(),
-            'deconv2': self.deconv2.state_dict(),
-            'deconv3': self.deconv3.state_dict(),
-            'deconv4': self.deconv4.state_dict(),
-            'deconv5': self.deconv5.state_dict(),
-            'deconv6': self.deconv6.state_dict(),
-            'deconv1_norm_act': self.deconv1_norm_act.state_dict(),
-            'deconv2_norm_act': self.deconv2_norm_act.state_dict(),
-            'deconv3_norm_act': self.deconv3_norm_act.state_dict(),
-            'deconv4_norm_act': self.deconv4_norm_act.state_dict(),
-            'deconv5_norm_act': self.deconv5_norm_act.state_dict(),
+            'model': self.state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'loss_history': self.loss_history
         }
-        
         torch.save(state, path)
         print(f"Model saved to {path}")
 
     def load(self, path):
-        """Load model checkpoint"""
         if os.path.exists(path):
             print(f"Loading model from {path}")
-            
             state = torch.load(path)
-            
-            self.conv1.load_state_dict(state['conv1'])
-            self.conv2.load_state_dict(state['conv2'])
-            self.conv3.load_state_dict(state['conv3'])
-            self.conv4.load_state_dict(state['conv4'])
-            self.conv5.load_state_dict(state['conv5'])
-            self.conv6.load_state_dict(state['conv6'])
-            self.deconv1.load_state_dict(state['deconv1'])
-            self.deconv2.load_state_dict(state['deconv2'])
-            self.deconv3.load_state_dict(state['deconv3'])
-            self.deconv4.load_state_dict(state['deconv4'])
-            self.deconv5.load_state_dict(state['deconv5'])
-            self.deconv6.load_state_dict(state['deconv6'])
-            self.deconv1_norm_act.load_state_dict(state['deconv1_norm_act'])
-            self.deconv2_norm_act.load_state_dict(state['deconv2_norm_act'])
-            self.deconv3_norm_act.load_state_dict(state['deconv3_norm_act'])
-            self.deconv4_norm_act.load_state_dict(state['deconv4_norm_act'])
-            self.deconv5_norm_act.load_state_dict(state['deconv5_norm_act'])
-            
+            self.load_state_dict(state['model'])
             self.optimizer.load_state_dict(state['optimizer'])
-            
             if 'loss_history' in state:
                 self.loss_history = state['loss_history']
-            
             print("Model loaded successfully!")
         else:
             print(f"Model file {path} not found. Starting from scratch.")
