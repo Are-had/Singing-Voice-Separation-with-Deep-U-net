@@ -12,6 +12,8 @@ checkpoints/
 spectrograms/
 struct
 docs/
+checkpoints/model_last.pth
+
 
 # Ignore OS files
 .DS_Store
