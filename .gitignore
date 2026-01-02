@@ -28,8 +28,4 @@ checkpoints/
 *.pt
 *.ckpt
 
-# Ignore environment files
-.env
-"checkpoints/" 
-"*.pth" 
-checkpoints/ 
+
