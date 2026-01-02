@@ -6,7 +6,7 @@
 !/checkpoints/.gitkeep
 
 /spectrograms/**
-!/spectrograms/.gitkeep
+!/spectrograms/**/.gitkeep
 
 # Python cache
 __pycache__/
