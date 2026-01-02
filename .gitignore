@@ -24,7 +24,8 @@ Thumbs.db
 *.pyo
 *.pyd
 
-# Ignore model checkpoints and weights
+
+# Ignore model checkpoints 
 checkpoints/
 *.pth
 *.pt
