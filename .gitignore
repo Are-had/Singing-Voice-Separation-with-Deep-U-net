@@ -14,7 +14,7 @@ outputs/
 # Python cache
 __pycache__/
 
-docs/
+
 struct
 # Local env folder (not part of source)
 Unet_tp_son/
@@ -35,4 +35,5 @@ Thumbs.db
 *.pt
 *.ckpt
 
-
+*.Loss_1.png
+*.pdf
