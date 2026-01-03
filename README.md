@@ -15,6 +15,8 @@ The U-Net consists of:
 - **Output**: Soft mask [0,1] applied to mixture spectrogram
 - **Loss function**: L1 (MAE)
 
+![U-Net Architecture](docs/rapport/unet_architecture.png)
+
 ## Dataset
 
 - **MUSDB18**: 150 full-length tracks
