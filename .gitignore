@@ -2,8 +2,8 @@
 /data/**
 !/data/.gitkeep
 /outputs/**
-
-
+!/outputs/.gitkeep
+/eval/
 /checkpoints/**
 !/checkpoints/.gitkeep
 
