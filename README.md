@@ -15,7 +15,9 @@ The U-Net consists of:
 - **Output**: Soft mask [0,1] applied to mixture spectrogram
 - **Loss function**: L1 (MAE)
 
-![U-Net Architecture](docs/rapport/unet_architecture.png)
+<p align="center">
+  <img src="docs/rapport/unet_architecture.png" alt="U-Net Architecture" width="600">
+</p>
 
 ## Dataset
 
