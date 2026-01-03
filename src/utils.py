@@ -63,6 +63,102 @@ def preprocess_musdb_and_save(tracks, output_folder):
 
 
 
+def separate_vocals(model, audio, sr=44100, patch_size=128, hop_size=64):
+    """
+    Separate vocals from audio: audio → spectrogram → inference → vocal audio
+    
+    Args:
+        model: Trained U-Net model
+        audio: Audio signal (mono or stereo)
+        sr: Sample rate (default: 44100)
+        patch_size: Size of patches for inference (default: 128)
+        hop_size: Hop size for overlapping patches (default: 64)
+    
+    Returns:
+        vocal_audio: Separated vocal audio as numpy array
+    """
+    
+    # Step 1: Audio → Spectrogram 
+    mix_spec, mix_phase = __audio_to_spectrogram(
+        audio=audio,
+        sr_original=sr,
+        target_sr=8192,
+        n_fft=1024,
+        hop_length=768
+    )
+    
+    # Step 2: Normalization 
+    norm = mix_spec.max()
+    mix_normalized = mix_spec / norm
+    
+    # Step 3: Inference with overlapping patches
+    freq_bins, total_frames = mix_spec.shape
+    
+    vocal_spec_sum = np.zeros_like(mix_spec)
+    weight_sum = np.zeros(total_frames)
+    
+    start = 0
+    
+    model.eval()
+    with torch.no_grad():
+        while start < total_frames:
+            end = min(start + patch_size, total_frames)
+            
+            # Extract patch
+            patch = mix_normalized[:, start:end]
+            original_patch_size = patch.shape[1]
+            
+            # Pad if necessary
+            if patch.shape[1] < patch_size:
+                padding = patch_size - patch.shape[1]
+                patch = np.pad(patch, ((0, 0), (0, padding)), mode='constant')
+            
+            # Remove first frequency bin (513 → 512)
+            patch_512 = patch[1:, :]
+            
+            # Convert to tensor
+            patch_tensor = torch.from_numpy(patch_512[np.newaxis, np.newaxis, :, :]).float()
+            
+            # Predict mask
+            mask = model.forward(patch_tensor)
+            
+            # Convert back to numpy
+            mask_np = mask.cpu().numpy()[0, 0, :, :]
+            
+            # Add first frequency bin back
+            mask_full = np.zeros((513, patch_size))
+            mask_full[1:, :] = mask_np
+            
+            # Apply mask
+            vocal_patch = mask_full * patch
+            
+            # Crop to actual size
+            vocal_patch = vocal_patch[:, :original_patch_size]
+            
+            # Accumulate
+            vocal_spec_sum[:, start:end] += vocal_patch
+            weight_sum[start:end] += 1
+            
+            start += hop_size
+    
+    # Average overlapping regions
+    vocal_spec_normalized = vocal_spec_sum / weight_sum[np.newaxis, :]
+    
+    # Step 4: Denormalization
+    vocal_spec_full = vocal_spec_normalized * norm
+    
+    # Step 5: Spectrogram → Audio 
+    vocal_audio = spectrogram_to_audio(
+        magnitude=vocal_spec_full,
+        phase=mix_phase,
+        target_sr=8192,
+        hop_length=768,
+        n_fft=1024,
+        original_sr=sr
+    )
+    
+    return vocal_audio
+
 
 def __audio_to_spectrogram(audio, sr_original=44100, target_sr=8192, 
                           n_fft=1024, hop_length=768):
@@ -98,45 +194,6 @@ def __audio_to_spectrogram(audio, sr_original=44100, target_sr=8192,
 
 
 
-def prepare_spectrogram_for_inference(mix_spec, model_device, target_frames=128):
-    """
-    Prepare a spectrogram for inference by normalizing and formatting it for the model
-    
-    Args:
-        mix_spec: (freq_bins, n_frames) - magnitude spectrogram
-        model_device: device to put the tensor on (e.g., 'cpu', 'cuda')
-        target_frames: target number of frames (default: 128)
-    
-    Returns:
-        mix_tensor: (1, 1, 512, target_frames) - tensor ready for model inference
-        spec_min: minimum value used for normalization
-        spec_max: maximum value used for normalization
-        n_frames: original number of frames (before padding)
-    """
-    
-    # Get original dimensions
-    freq_bins, n_frames = mix_spec.shape
-    
-    # Pad if needed
-    norm = mix_spec.max()
-    mix_normalized = mix_spec / norm
-    
-    # Pad if needed
-    if n_frames < target_frames:
-        padding = target_frames - n_frames
-        mix_padded = np.pad(mix_normalized, ((0, 0), (0, padding)), mode='constant')
-    else:
-        mix_padded = mix_normalized[:, :target_frames]
-    
-    # Remove first frequency bin (513 → 512)
-    mix_normalized_512_bins = mix_normalized[1:, :]  
-    
-    # Convert to tensor (1, 1, 512, target_frames)
-    mix_tensor = torch.from_numpy(mix_normalized_512_bins[np.newaxis, np.newaxis, :, :]).float()
-    mix_tensor = mix_tensor.to(model_device)
-    
-    return mix_tensor, n_frames,norm , mix_normalized  
-
 
 
 
@@ -157,8 +214,6 @@ def calculate_val_loss(model, val_loader):
             val_losses.append(loss.item())
     
     return sum(val_losses) / len(val_losses)
-
-
 
 
 
@@ -186,9 +241,29 @@ def spectrogram_to_audio(magnitude, phase, target_sr=8192, hop_length=768,
     
     # Resample back to original sampling rate if needed
     if target_sr != original_sr:
-        duration = len(audio) / target_sr
-        target_length = int(duration * original_sr)
-        audio = signal.resample(audio, target_length)
+        chunk_size = target_sr * 30  # 30 secondes
+        
+        if len(audio) > chunk_size:
+            # Process par chunks
+            resampled_chunks = []
+            
+            for start in range(0, len(audio), chunk_size):
+                end = min(start + chunk_size, len(audio))
+                chunk = audio[start:end]
+                
+                # Resample ce chunk
+                duration = len(chunk) / target_sr
+                target_length = int(duration * original_sr)
+                resampled_chunk = signal.resample(chunk, target_length)
+                
+                resampled_chunks.append(resampled_chunk)
+            
+            # Concatenate tous les chunks
+            audio = np.concatenate(resampled_chunks)
+        else:
+            # Audio court, resample normalement
+            duration = len(audio) / target_sr
+            target_length = int(duration * original_sr)
+            audio = signal.resample(audio, target_length)
     
     return audio
-
