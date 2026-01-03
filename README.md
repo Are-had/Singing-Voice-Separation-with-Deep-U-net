@@ -40,10 +40,7 @@ After 160 epochs of training:
 | SIR (Signal-to-Interference Ratio) | ~14 dB |
 
 The model successfully isolates vocals from accompaniment. Training for more epochs (500-1000) would likely improve performance further, as indicated by the continued downward trend in the loss curves.
-
-## References
-
-Jansson, A., Humphrey, E., Montecchio, N., Bittner, R., Kumar, A., & Weyde, T. (2017). *Singing Voice Separation with Deep U-Net Convolutional Networks*. ISMIR 2017.
+s
 ## References
 
 Jansson, A., Humphrey, E., Montecchio, N., Bittner, R., Kumar, A., & Weyde, T. (2017). Singing voice separation with deep U-Net convolutional networks. *ISMIR 2017*.
