@@ -118,19 +118,15 @@ def prepare_spectrogram_for_inference(mix_spec, model_device, target_frames=128)
     freq_bins, n_frames = mix_spec.shape
     
     # Pad if needed
+    norm = mix_spec.max()
+    mix_normalized = mix_spec / norm
+    
+    # Pad if needed
     if n_frames < target_frames:
         padding = target_frames - n_frames
-        mix_padded = np.pad(mix_spec, ((0, 0), (0, padding)), mode='constant')
+        mix_padded = np.pad(mix_normalized, ((0, 0), (0, padding)), mode='constant')
     else:
-        mix_padded = mix_spec[:, :target_frames]
-    
-    # Normalize
-    spec_min = mix_padded.min()
-    spec_max = mix_padded.max()
-    if spec_max - spec_min > 0:
-        mix_normalized = (mix_padded - spec_min) / (spec_max - spec_min)
-    else:
-        mix_normalized = mix_padded
+        mix_padded = mix_normalized[:, :target_frames]
     
     # Remove first frequency bin (513 → 512)
     mix_normalized_512_bins = mix_normalized[1:, :]  
@@ -139,50 +135,7 @@ def prepare_spectrogram_for_inference(mix_spec, model_device, target_frames=128)
     mix_tensor = torch.from_numpy(mix_normalized_512_bins[np.newaxis, np.newaxis, :, :]).float()
     mix_tensor = mix_tensor.to(model_device)
     
-    return mix_tensor, spec_min, spec_max, n_frames, mix_normalized  
-
-
-
-
-
-# def prepare_spectrogram_for_inference(mix_spec, model_device, target_frames=128):
-#     """
-#     Prepare a spectrogram for inference by normalizing and formatting it for the model
-    
-#     Args:
-#         mix_spec: (freq_bins, n_frames) - magnitude spectrogram
-#         model_device: device to put the tensor on (e.g., 'cpu', 'cuda')
-#         target_frames: target number of frames (default: 128)
-    
-#     Returns:
-#         mix_tensor: (1, 1, 512, target_frames) - tensor ready for model inference
-#         spec_min: minimum value used for normalization
-#         spec_max: maximum value used for normalization
-#         n_frames: original number of frames (before padding)
-#     """
-    
-#     # Get original dimensions
-#     freq_bins, n_frames = mix_spec.shape
-    
-#     # Pad if needed
-#     norm = mix_spec.max()
-#     mix_normalized = mix_spec / norm
-    
-#     # Pad if needed
-#     if n_frames < target_frames:
-#         padding = target_frames - n_frames
-#         mix_padded = np.pad(mix_normalized, ((0, 0), (0, padding)), mode='constant')
-#     else:
-#         mix_padded = mix_normalized[:, :target_frames]
-    
-#     # Remove first frequency bin (513 → 512)
-#     mix_normalized_512_bins = mix_normalized[1:, :]  
-    
-#     # Convert to tensor (1, 1, 512, target_frames)
-#     mix_tensor = torch.from_numpy(mix_normalized_512_bins[np.newaxis, np.newaxis, :, :]).float()
-#     mix_tensor = mix_tensor.to(model_device)
-    
-#     return mix_tensor, n_frames, mix_normalized  
+    return mix_tensor, n_frames,norm , mix_normalized  
 
 
 
