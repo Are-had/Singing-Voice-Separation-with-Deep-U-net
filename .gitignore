@@ -1,6 +1,8 @@
 # Keep the folders, ignore their contents (track a .gitkeep file)
 /data/**
 !/data/.gitkeep
+/outputs/**
+
 
 /checkpoints/**
 !/checkpoints/.gitkeep
@@ -24,6 +26,8 @@ Thumbs.db
 *.pyc
 *.pyo
 *.pyd
+*.wav
+
 
 # Model checkpoints (generic)
 *.pth
