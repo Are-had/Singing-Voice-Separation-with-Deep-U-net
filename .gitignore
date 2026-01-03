@@ -6,7 +6,8 @@
 /eval/
 /checkpoints/**
 !/checkpoints/.gitkeep
-
+outputs/
+/outputs/
 /spectrograms/**
 !/spectrograms/**/.gitkeep
 
