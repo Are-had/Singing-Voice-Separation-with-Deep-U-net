@@ -2,6 +2,7 @@ import torch
 import torch.utils.data as Data
 import numpy as np
 import os
+import random
 
 
 class DataLoader (Data.Dataset):
@@ -40,14 +41,21 @@ class DataLoader (Data.Dataset):
         voc = voc[1:, :]
         
         # STEP 1: Pad FIRST to 128 frames
-        if mix.shape[-1] < 128:
+        if mix.shape[-1] <= 128:
             padding = 128 - mix.shape[-1]
             mix = np.pad(mix, ((0, 0), (0, padding)), mode='constant')
             voc = np.pad(voc, ((0, 0), (0, padding)), mode='constant')
+
+        elif mix.shape[-1] > 128:
+
+            # Random crop to 128 frames
+            start = random.randint(0, mix.shape[-1] - 128)
+            mix = mix[:, start:start + 128]
+            voc = voc[:, start:start + 128]
         
-        # STEP 2: Normalize AFTER padding
-        mix = self._normalize(mix)
-        voc = self._normalize(voc)
+        # STEP 2: Normalize AFTER padding -> i already did it in utils.py for the second version 
+        # mix = self._normalize(mix)
+        # voc = self._normalize(voc)
         
         # Add channel dimension (512, 128) → (512, 128, 1)
         mix = mix[:, :, np.newaxis].astype(np.float32)
